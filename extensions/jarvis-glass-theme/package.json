@@ -26,11 +26,36 @@
 				"path": "./themes/jarvis-glass-light.json"
 			}
 		],
+		"iconThemes": [
+			{
+				"id": "jarvis-glass-icons",
+				"label": "Jarvis Glass Icons",
+				"path": "./icons/jarvis-glass-icons.json"
+			}
+		],
 		"configurationDefaults": {
+			"workbench.iconTheme": "jarvis-glass-icons",
+			"chat.disableAIFeatures": true,
 			"workbench.colorTheme": "Jarvis Glass Dark",
 			"workbench.preferredDarkColorTheme": "Jarvis Glass Dark",
 			"workbench.preferredLightColorTheme": "Jarvis Glass Light",
-			"terminal.integrated.gpuAcceleration": "off"
+			"terminal.integrated.gpuAcceleration": "off",
+			"workbench.experimental.modernUI": true,
+			"window.density.layout": "default",
+			"workbench.layoutControl.enabled": false,
+			"window.commandCenter": true,
+			"workbench.secondarySideBar.defaultVisibility": "visible",
+			"editor.renderLineHighlight": "all",
+			"editor.roundedSelection": true,
+			"workbench.tree.indent": 14,
+			"workbench.list.smoothScrolling": true,
+			"editor.smoothScrolling": true,
+			"editor.cursorSmoothCaretAnimation": "on",
+			"editor.cursorBlinking": "smooth",
+			"editor.fontLigatures": true,
+			"editor.minimap.enabled": false,
+			"breadcrumbs.enabled": true,
+			"workbench.editor.tabActionLocation": "right"
 		}
 	},
 	"repository": {

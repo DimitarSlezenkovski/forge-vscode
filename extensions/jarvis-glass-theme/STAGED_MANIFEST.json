@@ -6,26 +6,86 @@
 	"source": {
 		"repo": "https://github.com/DimitarSlezenkovski/Jarvis",
 		"path": "apps/forge-vscode/extensions/jarvis-glass-theme",
-		"commit": "ef5fbdc12f0a7797725297b2157851cb08a51e37",
+		"commit": "ed616f849f98e74430dc4e65817a0a555e226067",
 		"dirty": true,
 		"built": true
 	},
 	"files": {
+		"icons/code.svg": {
+			"sha256": "1b134429c4aed84b8e3fc7c908a3ef94fce2fabe0a5f83391eb5267abfd35b70",
+			"bytes": 452
+		},
+		"icons/data.svg": {
+			"sha256": "846a36ff3014350ba30bde4cb11a8363dcc338d5959117427dc5214ce00a90cf",
+			"bytes": 459
+		},
+		"icons/doc.svg": {
+			"sha256": "44f6733f7bc1c34a880c3a9257daee18b865f5649c8aa1aeb2fa4e0d22cde738",
+			"bytes": 408
+		},
+		"icons/file.svg": {
+			"sha256": "38cb7bdcf1572761ec1bda30dea5d879ccb2f4b2a544e1b4695b4fb91b96cd49",
+			"bytes": 297
+		},
+		"icons/folder.svg": {
+			"sha256": "14ed56bd25312ae5953b2d40ede91b477905c3e094b53574b50d3e75ad842988",
+			"bytes": 291
+		},
+		"icons/folder-open.svg": {
+			"sha256": "273d89c16ec1f1c6f9d25796ca56e17ab0b0d86438db2c4a64d9ec7bd8cae237",
+			"bytes": 399
+		},
+		"icons/folder-root.svg": {
+			"sha256": "19c10287ed2e2b6baec83517803b1fd5f417b8cb86d09a9a8ce92deafa56b99b",
+			"bytes": 420
+		},
+		"icons/git.svg": {
+			"sha256": "c683af10ad4c0c7b75be12ddd8a5b658c21d1cd1fce15d91acf3b41c22d08a1d",
+			"bytes": 478
+		},
+		"icons/image.svg": {
+			"sha256": "542338269246b34d7596ad8d1673c63d03eb7f830c7b109cfcef474fe86e0d37",
+			"bytes": 427
+		},
+		"icons/jarvis-glass-icons.json": {
+			"sha256": "caed849033ede46170bc49922d9ec90c89b0fba2cf86298fc48247e002b4706b",
+			"bytes": 3951
+		},
+		"icons/lock.svg": {
+			"sha256": "12df23613e1b284b00fa4f45be3ced029677526e2bcae9ccd38a47488bfb8d03",
+			"bytes": 365
+		},
+		"icons/markup.svg": {
+			"sha256": "4bc48f3b76d10a75892c068ffbb63941263bbbe0254a31f1498746dcc2a979b4",
+			"bytes": 470
+		},
+		"icons/settings.svg": {
+			"sha256": "6df565dd6510c3f6436dd6458a96d9afddf82156fdf350153ad89fe93eccc2e2",
+			"bytes": 378
+		},
+		"icons/shell.svg": {
+			"sha256": "05c2a67e224ca95d516ef8acb09ad0cb5e158c31929384bfea48266be47e5c44",
+			"bytes": 441
+		},
+		"icons/style.svg": {
+			"sha256": "3860010456728d97e10a0cbd8d4004d473dc5d38bca48fcf59bee5e104168a17",
+			"bytes": 449
+		},
 		"package.json": {
-			"sha256": "abc9e8a0be8a1ff8f56fbd2050b1acfb53f2b0bc92c3e4308c28564d6c7fd5bd",
-			"bytes": 1027
+			"sha256": "76facd5278d70eadf36f3b1550c3cbd4520773b51f359afe48a780727e7346d3",
+			"bytes": 1900
 		},
 		"README.md": {
 			"sha256": "67940a116c2f3caf0638ec29b84ed94d69dca0ced8b4a2d32748563be0276119",
 			"bytes": 3083
 		},
 		"themes/jarvis-glass-dark.json": {
-			"sha256": "3485716d42c5c2c0defbc3c56ff78d13a3391cfd5fb927e8cf7ba288cd0e20fd",
-			"bytes": 22461
+			"sha256": "384dace06a427c4e7aecf3484d81be0b6db80511d39fc8be9b3dbc63d80d6756",
+			"bytes": 23334
 		},
 		"themes/jarvis-glass-light.json": {
-			"sha256": "b4614a0e594ab586983eaa7dc9596b86bf743b6352d0235f1f1e6e053252a8a2",
-			"bytes": 23680
+			"sha256": "0bd5232197b7f454444be8b035eb5c4dad06f7930bb40a1dc503018513a4649e",
+			"bytes": 24553
 		}
 	}
 }

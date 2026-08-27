@@ -232,6 +232,7 @@ export const copyrightFilter = Object.freeze<string[]>([
 	// Jarvis Forge overlay: authored by the fork, so it does not carry
 	// Microsoft's copyright header. See apps/forge-vscode/patches/README.md.
 	'!src/vs/workbench/browser/media/jarvisGlass.css',
+	'!src/vs/workbench/contrib/jarvisLens/**',
 ]);
 
 export const tsFormattingFilter = Object.freeze<string[]>([

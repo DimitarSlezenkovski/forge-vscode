@@ -15,8 +15,25 @@
 		"onStartupFinished"
 	],
 	"main": "./dist/extension.js",
+	"capabilities": {
+		"untrustedWorkspaces": {
+			"supported": "limited",
+			"description": "The Lens reads daemon state and shows it. Engaging a directive runs an agent against this folder, and the daemon-launch settings name an executable — so those two settings are never taken from an untrusted workspace.",
+			"restrictedConfigurations": [
+				"jarvis.daemonLaunch",
+				"jarvis.daemonUrl"
+			]
+		}
+	},
 	"contributes": {
 		"viewsContainers": {
+			"secondarySidebar": [
+				{
+					"id": "jarvis-lens",
+					"title": "Jarvis",
+					"icon": "media/jarvis.svg"
+				}
+			],
 			"activitybar": [
 				{
 					"id": "jarvis-forge",
@@ -26,6 +43,18 @@
 			]
 		},
 		"views": {
+			"jarvis-lens": [
+				{
+					"type": "webview",
+					"id": "jarvis.lens",
+					"name": "Lens",
+					"icon": "media/jarvis.svg",
+					"contextualTitle": "Jarvis Lens",
+					"visibility": "visible",
+					"initialSize": 3,
+					"accessibilityHelpContent": "The Jarvis Lens. Type a directive in the intent field and press Enter to engage it; Shift+Enter captures the goal without running it. Below the field, the flow river lists this workspace's workflows — Enter or Space expands one in place, Escape collapses it. When a workflow needs a decision, a sheet rises with the diff summary, evidence and the Approve, Ask for repair and Deny actions."
+				}
+			],
 			"jarvis-forge": [
 				{
 					"id": "jarvis.projects",
@@ -41,11 +70,84 @@
 				}
 			]
 		},
+		"colors": [
+			{
+				"id": "jarvis.ghostAddedBackground",
+				"description": "Tint behind a hunk Jarvis proposes adding to the open file.",
+				"defaults": {
+					"dark": "#54A8FF29",
+					"light": "#0A5FE01F",
+					"highContrast": "#00000000",
+					"highContrastLight": "#00000000"
+				}
+			},
+			{
+				"id": "jarvis.ghostAddedBorder",
+				"description": "Leading edge of a proposed addition.",
+				"defaults": {
+					"dark": "#54A8FF",
+					"light": "#0A5FE0",
+					"highContrast": "contrastBorder",
+					"highContrastLight": "contrastBorder"
+				}
+			},
+			{
+				"id": "jarvis.ghostRemovedBackground",
+				"description": "Tint behind a hunk Jarvis proposes removing.",
+				"defaults": {
+					"dark": "#FF8FA029",
+					"light": "#C01B361F",
+					"highContrast": "#00000000",
+					"highContrastLight": "#00000000"
+				}
+			},
+			{
+				"id": "jarvis.ghostRemovedBorder",
+				"description": "Leading edge of a proposed removal.",
+				"defaults": {
+					"dark": "#FF8FA0",
+					"light": "#C01B36",
+					"highContrast": "contrastBorder",
+					"highContrastLight": "contrastBorder"
+				}
+			}
+		],
+		"keybindings": [
+			{
+				"command": "jarvis.lens.focus",
+				"key": "ctrl+j",
+				"mac": "cmd+j"
+			}
+		],
 		"commands": [
 			{
 				"command": "jarvis.engage",
 				"title": "Jarvis: Engage a Directive",
 				"icon": "$(rocket)"
+			},
+			{
+				"command": "jarvis.lens.focus",
+				"title": "Jarvis: Focus the Lens"
+			},
+			{
+				"command": "jarvis.engagePrompt",
+				"title": "Jarvis: Engage a Directive (input box)"
+			},
+			{
+				"command": "jarvis.ghost.accept",
+				"title": "Jarvis: Accept Proposed Hunk"
+			},
+			{
+				"command": "jarvis.ghost.reject",
+				"title": "Jarvis: Reject Proposed Hunk"
+			},
+			{
+				"command": "jarvis.ghost.why",
+				"title": "Jarvis: Why This Change?"
+			},
+			{
+				"command": "jarvis.ghost.clear",
+				"title": "Jarvis: Clear Inline Ghost Diffs"
 			},
 			{
 				"command": "jarvis.registerWorkspace",

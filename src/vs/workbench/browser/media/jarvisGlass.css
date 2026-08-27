@@ -352,3 +352,137 @@ body .monaco-workbench.hc-light {
 		box-shadow: none;
 	}
 }
+
+/*
+	7. The Modern UI layout, on glass.
+
+	extensions/jarvis-glass-theme turns on `workbench.experimental.modernUI`,
+	which floats the side bars and the panel as cards with real gaps and gives
+	the editor part its own frame. That layout work happens in TypeScript
+	(AbstractPaneCompositePart reduces the content dimensions to match), so it is
+	not something this stylesheet could reproduce - what it CAN do is make those
+	cards glass instead of slabs, and open the corners from upstream's 8px to the
+	Jarvis radius ladder.
+
+	Note the specificity arithmetic below. contrib/modernUI/browser/media/
+	editorBorder.css paints `.modern-ui .monaco-grid-view .part.editor` with
+	`var(--vscode-editor-background)` at (0,4,1), which out-weighs section 4's
+	`.monaco-workbench .part.editor` at (0,2,1). That would put a SECOND coat of
+	the 82% editor scrim under the one on `.monaco-editor`, and two coats
+	composite to 97% - the editor would look solid again, which is the whole bug
+	section 4 exists to avoid. The rule below wins at (0,5,1).
+*/
+
+.monaco-workbench.modern-ui .monaco-grid-view .part.editor:not(.modal-editor-part) {
+	background-color: transparent;
+}
+
+/*
+	Concentric radii: the window corner is 28, so the cards inside it step down to
+	18 rather than upstream's 8. Never larger than the parent's, never equal.
+*/
+
+.monaco-workbench.floating-panels .part.sidebar,
+.monaco-workbench.floating-panels .part.auxiliarybar,
+.monaco-workbench.floating-panels .part.panel,
+.monaco-workbench.modern-ui .monaco-grid-view .part.editor:not(.modal-editor-part) {
+	border-radius: 18px;
+}
+
+/*
+	The cards float over the ambient wash, so they carry a real drop shadow as
+	well as the specular pair. This replaces section 3's flat inset-only shadow
+	for the parts that became cards; the title bar and status bar keep theirs.
+*/
+
+.monaco-workbench.floating-panels .part.sidebar,
+.monaco-workbench.floating-panels .part.auxiliarybar,
+.monaco-workbench.floating-panels .part.panel {
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
+		0 10px 30px rgba(0, 0, 0, 0.30);
+}
+
+.monaco-workbench.vs.floating-panels .part.sidebar,
+.monaco-workbench.vs.floating-panels .part.auxiliarybar,
+.monaco-workbench.vs.floating-panels .part.panel {
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+		0 10px 30px rgba(12, 20, 30, 0.12);
+}
+
+.monaco-workbench.modern-ui .monaco-grid-view .part.editor:not(.modal-editor-part) {
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+		0 10px 30px rgba(0, 0, 0, 0.26);
+}
+
+.monaco-workbench.vs.modern-ui .monaco-grid-view .part.editor:not(.modal-editor-part) {
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+		0 10px 30px rgba(12, 20, 30, 0.10);
+}
+
+/*
+	Tabs as glass pills.
+
+	contrib/modernUI already makes them borderless and rounded at 4px; this takes
+	them the rest of the way to a capsule and gives the active one the specular
+	top edge that reads as a pane rather than a highlight rectangle. The pill
+	colours themselves are theme keys (modernEditorTab.*), not values here.
+*/
+
+.monaco-workbench.modern-ui-tabs .part.editor .tabs-container > .tab {
+	border-radius: 999px;
+}
+
+.monaco-workbench.modern-ui-tabs .part.editor .tabs-container > .tab.active {
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+		0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.monaco-workbench.vs.modern-ui-tabs .part.editor .tabs-container > .tab.active {
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+		0 0 0 1px rgba(12, 20, 30, 0.08);
+}
+
+/*
+	The activity bar rail sits flush against the primary side bar in this layout,
+	so the two must read as one card: the rail drops the blur it had in section 3
+	(it would double up over the side bar's) and keeps only the seam.
+*/
+
+.monaco-workbench.floating-panels .part.activitybar {
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+	background-color: transparent;
+}
+
+/*
+	Gaps between cards show the ambient wash, which is the point of the layout -
+	so the sash that lives in a gap must not paint over it.
+*/
+
+.monaco-workbench.floating-panels .monaco-sash {
+	background-color: transparent;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+	.monaco-workbench.modern-ui .monaco-grid-view .part.editor:not(.modal-editor-part) {
+		background-color: rgb(17, 24, 35);
+	}
+
+	.monaco-workbench.vs.modern-ui .monaco-grid-view .part.editor:not(.modal-editor-part) {
+		background-color: rgb(255, 255, 255);
+	}
+
+	.monaco-workbench.floating-panels .part.activitybar {
+		background-color: rgb(17, 24, 35);
+	}
+
+	.monaco-workbench.vs.floating-panels .part.activitybar {
+		background-color: rgb(243, 245, 249);
+	}
+}

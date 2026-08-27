@@ -482,4 +482,7 @@ import './contrib/editTelemetry/browser/editTelemetry.contribution.js';
 // Opener
 import './contrib/opener/browser/opener.contribution.js';
 
+// Jarvis Forge: the Lens pill over the editor area
+import './contrib/jarvisLens/browser/jarvisLens.contribution.js';
+
 //#endregion

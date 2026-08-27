@@ -1,0 +1,229 @@
+/*---------------------------------------------------------------------------------------------
+ *  Jarvis Forge overlay - the Lens pill.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/*
+	The floating capsule over the editor area. Same material as the rest of the
+	workbench (docs/design/glass-ui.md sec. 3.2) and the same constraints as
+	jarvisGlass.css: tabs only, ASCII only, no custom properties of our own
+	(build/stylelint.ts validates every var() against vscode-known-variables.json),
+	literal values split by theme class.
+
+	The host is pointer-transparent so the pill never steals a click meant for the
+	code beneath it; only the capsule itself is interactive.
+*/
+
+.monaco-workbench .part.editor > .jarvis-lens-host {
+	position: absolute;
+	inset: 0 0 auto 0;
+	z-index: 12;
+	display: flex;
+	justify-content: center;
+	pointer-events: none;
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill {
+	position: relative;
+	margin-top: 8px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 42%;
+	height: 28px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 999px;
+	cursor: pointer;
+	pointer-events: auto;
+	font-family: inherit;
+	font-size: 11px;
+	font-weight: 560;
+	letter-spacing: 0.01em;
+	color: rgba(238, 244, 251, 0.92);
+	background-color: rgba(20, 28, 40, 0.55);
+	-webkit-backdrop-filter: blur(26px) saturate(180%);
+	backdrop-filter: blur(26px) saturate(180%);
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+		0 0 0 1px rgba(255, 255, 255, 0.10),
+		0 8px 24px rgba(0, 0, 0, 0.34);
+	opacity: 0.72;
+	transition:
+		opacity 220ms cubic-bezier(0.32, 0.72, 0, 1),
+		transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+		box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.monaco-workbench.vs .part.editor > .jarvis-lens-host .jarvis-lens-pill {
+	color: rgba(14, 20, 27, 0.92);
+	background-color: rgba(255, 255, 255, 0.66);
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+		0 0 0 1px rgba(12, 20, 30, 0.10),
+		0 8px 24px rgba(12, 20, 30, 0.14);
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill:hover,
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill:focus-visible {
+	opacity: 1;
+	transform: translateY(1px);
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+		0 0 0 1px rgba(255, 255, 255, 0.16),
+		0 12px 32px rgba(0, 0, 0, 0.40);
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-dot {
+	flex: none;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background-color: rgba(174, 190, 206, 0.55);
+	color: rgba(84, 168, 255, 1);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-text {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	min-width: 0;
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-label {
+	flex: none;
+	white-space: nowrap;
+}
+
+/*
+	Dynamic-island behaviour: the pill is a mark at rest and grows a caption when
+	there is something to say - or when you point at it.
+*/
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-detail {
+	max-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	opacity: 0;
+	font-weight: 450;
+	color: rgba(174, 190, 206, 0.9);
+	transition:
+		max-width 360ms cubic-bezier(0.32, 0.72, 0, 1),
+		opacity 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-detail::before {
+	content: "";
+	display: inline-block;
+	width: 3px;
+	height: 3px;
+	margin: 0 6px 2px 0;
+	border-radius: 50%;
+	background-color: currentColor;
+	opacity: 0.5;
+	vertical-align: middle;
+}
+
+.monaco-workbench.vs .part.editor > .jarvis-lens-host .jarvis-lens-detail {
+	color: rgba(65, 80, 95, 0.9);
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill:hover .jarvis-lens-detail,
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill.state-attention .jarvis-lens-detail {
+	max-width: 260px;
+	opacity: 1;
+}
+
+/* Idle: barely there. The editor is the content; the pill is a mark. */
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill.state-idle {
+	opacity: 0.42;
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill.state-idle .jarvis-lens-dot {
+	background-color: rgba(84, 168, 255, 0.55);
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill.state-offline {
+	opacity: 0.3;
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill.state-working {
+	opacity: 0.95;
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill.state-working .jarvis-lens-dot {
+	color: rgb(84, 168, 255);
+	animation: jarvis-lens-spin 3.4s linear infinite;
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill.state-attention {
+	opacity: 1;
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+		0 0 0 1px rgba(255, 190, 92, 0.34),
+		0 8px 26px rgba(255, 190, 92, 0.14);
+	animation: jarvis-lens-pulse 2.6s ease-in-out infinite;
+}
+
+.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill.state-attention .jarvis-lens-dot {
+	color: rgb(255, 190, 92);
+}
+
+@keyframes jarvis-lens-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes jarvis-lens-pulse {
+	0%,
+	100% {
+		box-shadow:
+			inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+			0 0 0 1px rgba(255, 190, 92, 0.28),
+			0 8px 26px rgba(255, 190, 92, 0.10);
+	}
+	50% {
+		box-shadow:
+			inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+			0 0 0 1px rgba(255, 190, 92, 0.55),
+			0 10px 30px rgba(255, 190, 92, 0.20);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill,
+	.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill .jarvis-lens-dot,
+	.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-detail {
+		animation: none;
+		transition-duration: 1ms;
+	}
+}
+
+@media (prefers-reduced-transparency: reduce) {
+	.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill {
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+		background-color: rgb(20, 28, 40);
+	}
+
+	.monaco-workbench.vs .part.editor > .jarvis-lens-host .jarvis-lens-pill {
+		background-color: rgb(255, 255, 255);
+	}
+}
+
+@media (forced-colors: active) {
+	.monaco-workbench .part.editor > .jarvis-lens-host .jarvis-lens-pill {
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+		background-color: Canvas;
+		color: CanvasText;
+		border: 1px solid CanvasText;
+		box-shadow: none;
+		animation: none;
+	}
+}

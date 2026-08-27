@@ -166,3 +166,4 @@ test/unit/fullJsonStreamReporter.js
 test/unit/node/index.js
 test/unit/reporter.js
 extensions/jarvis-forge/dist/extension.js
+extensions/jarvis-forge/dist/lens.js
