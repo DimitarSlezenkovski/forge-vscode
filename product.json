@@ -244,5 +244,6 @@
 		"resourceUrlTemplate": "https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}",
 		"controlUrl": ""
 	},
-	"extensionEnabledApiProposals": {}
+	"extensionEnabledApiProposals": {},
+	"forgeGlassWindow": true
 }

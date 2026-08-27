@@ -1,0 +1,31 @@
+{
+	"$comment": "Provenance for a build artefact committed from another repo. Generated — do not hand-edit; re-run apps/forge-vscode/scripts/apply-overlay.ps1.",
+	"generatedBy": "apps/forge-vscode/scripts/apply-overlay.ps1",
+	"extensionId": "jarvis.jarvis-glass-theme",
+	"extensionVersion": "0.1.0",
+	"source": {
+		"repo": "https://github.com/DimitarSlezenkovski/Jarvis",
+		"path": "apps/forge-vscode/extensions/jarvis-glass-theme",
+		"commit": "ef5fbdc12f0a7797725297b2157851cb08a51e37",
+		"dirty": true,
+		"built": true
+	},
+	"files": {
+		"package.json": {
+			"sha256": "abc9e8a0be8a1ff8f56fbd2050b1acfb53f2b0bc92c3e4308c28564d6c7fd5bd",
+			"bytes": 1027
+		},
+		"README.md": {
+			"sha256": "67940a116c2f3caf0638ec29b84ed94d69dca0ced8b4a2d32748563be0276119",
+			"bytes": 3083
+		},
+		"themes/jarvis-glass-dark.json": {
+			"sha256": "3485716d42c5c2c0defbc3c56ff78d13a3391cfd5fb927e8cf7ba288cd0e20fd",
+			"bytes": 22461
+		},
+		"themes/jarvis-glass-light.json": {
+			"sha256": "b4614a0e594ab586983eaa7dc9596b86bf743b6352d0235f1f1e6e053252a8a2",
+			"bytes": 23680
+		}
+	}
+}

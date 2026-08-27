@@ -299,6 +299,14 @@ export interface IProductConfiguration {
 		darwinBundleIdentifier?: string;
 		urlProtocol?: string;
 	};
+
+	/**
+	 * Jarvis Forge overlay: opt in to a translucent native window material
+	 * (Mica on Windows 11, `under-window` vibrancy on macOS). Absent or false
+	 * leaves window creation exactly as upstream builds it.
+	 * See apps/forge-vscode/patches/0004-glass-window-material.patch.
+	 */
+	readonly forgeGlassWindow?: boolean;
 }
 
 export interface IProductOnboardingKeymap {

@@ -1,0 +1,40 @@
+{
+	"name": "jarvis-glass-theme",
+	"displayName": "Jarvis Glass",
+	"description": "The Jarvis Glass design language as a Forge colour theme: a translucent workbench and editor over the native window material.",
+	"version": "0.1.0",
+	"publisher": "jarvis",
+	"license": "MIT",
+	"engines": {
+		"vscode": "*"
+	},
+	"categories": [
+		"Themes"
+	],
+	"contributes": {
+		"themes": [
+			{
+				"id": "Jarvis Glass Dark",
+				"label": "Jarvis Glass Dark",
+				"uiTheme": "vs-dark",
+				"path": "./themes/jarvis-glass-dark.json"
+			},
+			{
+				"id": "Jarvis Glass Light",
+				"label": "Jarvis Glass Light",
+				"uiTheme": "vs",
+				"path": "./themes/jarvis-glass-light.json"
+			}
+		],
+		"configurationDefaults": {
+			"workbench.colorTheme": "Jarvis Glass Dark",
+			"workbench.preferredDarkColorTheme": "Jarvis Glass Dark",
+			"workbench.preferredLightColorTheme": "Jarvis Glass Light",
+			"terminal.integrated.gpuAcceleration": "off"
+		}
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DimitarSlezenkovski/Jarvis.git"
+	}
+}

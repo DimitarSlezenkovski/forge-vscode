@@ -6,7 +6,7 @@
 	"source": {
 		"repo": "https://github.com/DimitarSlezenkovski/Jarvis",
 		"path": "apps/forge-ide",
-		"commit": "d47a1575275e0a72d2b8a83b08ce4c18a28105eb",
+		"commit": "ef5fbdc12f0a7797725297b2157851cb08a51e37",
 		"dirty": false,
 		"built": true
 	},

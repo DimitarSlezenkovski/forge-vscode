@@ -267,6 +267,24 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 		};
 	}
 
+	// Jarvis Forge: translucent native window material, gated on product.json's
+	// `forgeGlassWindow` so an unbranded build is byte-identical to upstream.
+	// `transparent` deliberately stays FALSE: on Windows it puts the window into
+	// layered mode, which disables backgroundMaterial, DWM snapping and the drop
+	// shadow. An alpha-0 backgroundColor is the supported way to clear the
+	// composition buffer so the DWM-painted Mica shows through a framed window.
+	// See docs/design/glass-ui.md 6.3a and apps/forge-vscode/patches/README.md.
+	if (productService.forgeGlassWindow && !overrides?.transparent) {
+		options.backgroundColor = '#00000000';
+		options.roundedCorners = true;
+		if (isWindows) {
+			options.backgroundMaterial = 'mica'; // sampled once; Acrylic is a live blur and too costly for a long-lived window
+		} else if (isMacintosh) {
+			options.vibrancy = 'under-window';
+			options.visualEffectState = 'followWindow';
+		}
+	}
+
 	return options;
 }
 

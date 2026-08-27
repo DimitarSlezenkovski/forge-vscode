@@ -1,0 +1,354 @@
+/*---------------------------------------------------------------------------------------------
+ *  Jarvis Glass - workbench material overlay for Jarvis Forge.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/*
+	Re-applied on every upstream sync by apps/forge-vscode/scripts/apply-overlay.ps1
+	as patches/0003-glass-workbench-css.patch. Design: docs/design/glass-ui.md 6.3c.
+
+	Three rules govern every edit here:
+
+	1. The colours live in the THEME (extensions/jarvis-glass-theme), not here.
+	This file only adds what a theme colour cannot express: the backdrop blur,
+	the specular edge pair, the concentric radii and the ambient wash.
+
+	2. Never blur per row, per line or per list item. The budget is roughly a
+	dozen backdrop-filtered surfaces on screen, and the parts below are it.
+
+	3. Every selector is a maintenance liability re-applied on each sync. Add one
+	only when a theme colour genuinely cannot do the job.
+
+	No custom properties: the fork's stylelint validates every var() against
+	build/lib/stylelint/vscode-known-variables.json, so a --jarvis-* token would
+	fail hygiene. Literal values, split by theme class instead.
+*/
+
+/*
+	1. Clear the opaque layers between the page and the native window material.
+
+	The `.initialShellColors` style element (injected by
+	src/vs/code/electron-browser/workbench/workbench.ts before the workbench
+	loads) paints `body` with the theme's editor background, and style.ts's
+	theming participant paints `.monaco-workbench` with the hardcoded
+	WORKBENCH_BACKGROUND. Both are opaque and either alone would hide Mica or
+	vibrancy entirely. Beat them on specificity rather than with !important, so
+	a user's own colour customisation still wins over this file.
+*/
+
+html body {
+	background-color: transparent;
+}
+
+/*
+	2. The ambient layer - app-owned and near-opaque (glass-ui.md 2).
+
+	This is what every backdrop-filter below actually samples, and what makes
+	text contrast deterministic: glyphs composite against this wash, never
+	against the user's desktop. The native material sits underneath and only
+	tints through the remaining alpha. Keep these values in step with the STACK
+	table in apps/forge-vscode/scripts/generate-glass-themes.mjs - that is what
+	the theme's contrast floor is computed against.
+
+	The blobs are plain radial gradients, never `filter: blur()` on a large
+	layer: a full-viewport raster pass on every composite would cost more than
+	the whole rest of this file.
+*/
+
+body .monaco-workbench {
+	background-color: rgba(7, 11, 18, 0.62);
+	background-image:
+		radial-gradient(1500px 1000px at 26% -18%, rgba(38, 110, 214, 0.48), rgba(38, 110, 214, 0) 70%),
+		radial-gradient(1400px 900px at 84% -6%, rgba(122, 86, 224, 0.36), rgba(122, 86, 224, 0) 70%),
+		radial-gradient(1300px 1000px at 50% 118%, rgba(20, 160, 176, 0.30), rgba(20, 160, 176, 0) 66%);
+	background-repeat: no-repeat;
+}
+
+body .monaco-workbench.vs {
+	background-color: rgba(232, 237, 244, 0.62);
+	background-image:
+		radial-gradient(1500px 1000px at 26% -18%, rgba(120, 170, 255, 0.48), rgba(120, 170, 255, 0) 70%),
+		radial-gradient(1400px 900px at 84% -6%, rgba(168, 140, 255, 0.34), rgba(168, 140, 255, 0) 70%),
+		radial-gradient(1300px 1000px at 50% 118%, rgba(110, 215, 225, 0.30), rgba(110, 215, 225, 0) 66%);
+}
+
+/*
+	High contrast themes opt out of the material entirely: they exist to remove
+	ambiguity, and a translucent backdrop is ambiguity.
+*/
+
+body .monaco-workbench.hc-black {
+	background-color: rgb(0, 0, 0);
+	background-image: none;
+}
+
+body .monaco-workbench.hc-light {
+	background-color: rgb(255, 255, 255);
+	background-image: none;
+}
+
+/*
+	3. The chrome parts - one backdrop-filter each.
+
+	`saturate` does as much work here as `blur`: it keeps the colour behind the
+	pane alive instead of letting the tint grey it out, and unlike blur it is
+	visible even when the backdrop is a smooth gradient.
+*/
+
+.monaco-workbench .part.titlebar,
+.monaco-workbench .part.activitybar,
+.monaco-workbench .part.sidebar,
+.monaco-workbench .part.panel,
+.monaco-workbench .part.auxiliarybar,
+.monaco-workbench .part.statusbar {
+	-webkit-backdrop-filter: blur(26px) saturate(180%);
+	backdrop-filter: blur(26px) saturate(180%);
+}
+
+/*
+	The specular pair: a 1px inner highlight where a light at the upper left
+	would catch the bevel, plus a hairline ring. That pair is what makes a
+	translucent rectangle read as a physical pane rather than a faded box.
+*/
+
+.monaco-workbench .part.titlebar {
+	box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+}
+
+.monaco-workbench .part.statusbar {
+	box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
+}
+
+.monaco-workbench .part.sidebar,
+.monaco-workbench .part.auxiliarybar,
+.monaco-workbench .part.panel {
+	box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.monaco-workbench.vs .part.titlebar,
+.monaco-workbench.vs .part.statusbar,
+.monaco-workbench.vs .part.sidebar,
+.monaco-workbench.vs .part.auxiliarybar,
+.monaco-workbench.vs .part.panel {
+	box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
+}
+
+/*
+	4. The editor, on glass.
+
+	microsoft/vscode#134213 is about an alpha `editor.background` still looking
+	solid, and the reason is worth writing down because it is not obvious: VS
+	Code paints that one colour onto THREE stacked elements - the group's
+	`.editor-container` (an inline style set in editorGroupView.ts), the
+	`.monaco-editor` root, and the scrolled `.lines-content` layer. Three coats
+	of 82% alpha composite to 99.5%, so the editor looks solid no matter what
+	alpha the theme asks for. Measured before this rule landed: the editor read
+	rgb(16,22,32) at every point on screen, exactly the flat tint.
+
+	The fix is to keep exactly ONE coat. `.monaco-editor` is the right one: it
+	is the editor's fixed root, so the scrim does not move when the buffer
+	scrolls. Clearing the other two is what actually makes the editor glass.
+
+	The blur is ONE layer for the whole editor part. Not per group, not per
+	editor, and never on `.lines-content` or `.view-lines` - those are
+	virtualised and transform on every scroll frame, so a filter there
+	re-rasterises the viewport 60 times a second for no visual gain.
+*/
+
+.monaco-workbench .part.editor,
+.monaco-workbench .part.editor > .content,
+.monaco-workbench .part.editor > .content .editor-group-container,
+.monaco-workbench .part.editor > .content .editor-group-container > .title,
+.monaco-workbench .part.editor .monaco-editor .lines-content.monaco-editor-background {
+	background-color: transparent;
+}
+
+/*
+	The one !important in this file, and it is unavoidable: editorGroupView.ts
+	assigns `editorContainer.style.backgroundColor` directly, and an inline
+	style outranks any selector. Scoped as tightly as possible so nothing else
+	inherits the override.
+*/
+
+.monaco-workbench .part.editor > .content .editor-group-container > .editor-container {
+	background-color: transparent !important;
+}
+
+.monaco-workbench .part.editor > .content {
+	-webkit-backdrop-filter: blur(30px) saturate(160%);
+	backdrop-filter: blur(30px) saturate(160%);
+}
+
+/*
+	The gutter, margin and overview ruler ride on the editor scrim rather than
+	painting their own. `editorGutter.background` and
+	`editorOverviewRuler.background` are #00000000 in the theme; these rules
+	cover the elements that hardcode a fill instead.
+*/
+
+.monaco-workbench .part.editor .monaco-editor .margin,
+.monaco-workbench .part.editor .monaco-editor .glyph-margin,
+.monaco-workbench .part.editor .monaco-editor .decorationsOverviewRuler {
+	background-color: transparent;
+}
+
+/*
+	Sticky scroll floats above the code, so it needs its own separation: the
+	theme gives it a denser scrim, this gives it the hairline and shadow.
+*/
+
+.monaco-workbench .part.editor .monaco-editor .sticky-widget {
+	box-shadow: inset 0 -1px 0 0 rgba(255, 255, 255, 0.10), 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+.monaco-workbench.vs .part.editor .monaco-editor .sticky-widget {
+	box-shadow: inset 0 -1px 0 0 rgba(12, 20, 30, 0.10), 0 6px 18px rgba(12, 20, 30, 0.10);
+}
+
+/*
+	5. Floating surfaces - quick input, hovers, suggest, menus, notifications.
+
+	These are the highest layer, so they are the most translucent-looking and
+	carry the deepest blur and shadow (glass-ui.md 2). Radii follow the
+	concentric ladder: panel 20, card 16, control 12, inner 8.
+*/
+
+.monaco-workbench .quick-input-widget,
+.monaco-workbench .monaco-hover,
+.monaco-workbench .suggest-widget,
+.monaco-workbench .parameter-hints-widget,
+.monaco-workbench .notifications-toasts .notification-toast,
+.monaco-workbench .context-view .monaco-menu {
+	-webkit-backdrop-filter: blur(40px) saturate(180%);
+	backdrop-filter: blur(40px) saturate(180%);
+}
+
+.monaco-workbench .quick-input-widget {
+	border-radius: 20px;
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.20),
+		inset 1px 0 0 0 rgba(255, 255, 255, 0.10),
+		0 0 0 1px rgba(255, 255, 255, 0.10),
+		0 2px 8px rgba(0, 0, 0, 0.32),
+		0 24px 80px rgba(0, 0, 0, 0.34);
+	overflow: hidden;
+}
+
+.monaco-workbench .monaco-hover,
+.monaco-workbench .suggest-widget,
+.monaco-workbench .parameter-hints-widget,
+.monaco-workbench .notifications-toasts .notification-toast,
+.monaco-workbench .context-view .monaco-menu {
+	border-radius: 12px;
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+		0 0 0 1px rgba(255, 255, 255, 0.08),
+		0 10px 28px rgba(0, 0, 0, 0.34);
+}
+
+.monaco-workbench.vs .quick-input-widget {
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+		inset 1px 0 0 0 rgba(255, 255, 255, 0.45),
+		0 0 0 1px rgba(12, 20, 30, 0.10),
+		0 2px 8px rgba(12, 20, 30, 0.12),
+		0 24px 80px rgba(12, 20, 30, 0.22);
+}
+
+.monaco-workbench.vs .monaco-hover,
+.monaco-workbench.vs .suggest-widget,
+.monaco-workbench.vs .parameter-hints-widget,
+.monaco-workbench.vs .notifications-toasts .notification-toast,
+.monaco-workbench.vs .context-view .monaco-menu {
+	box-shadow:
+		inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+		0 0 0 1px rgba(12, 20, 30, 0.10),
+		0 10px 28px rgba(12, 20, 30, 0.10);
+}
+
+/*
+	Inner affordances sit inside those radii, so they step DOWN the ladder,
+	never up. An inner radius larger than its parent's is what makes a control
+	look glued to the pane edge.
+*/
+
+.monaco-workbench .quick-input-widget .quick-input-box .monaco-inputbox,
+.monaco-workbench .quick-input-widget .quick-input-list .monaco-list-row {
+	border-radius: 8px;
+}
+
+/*
+	6. Reduced transparency, and forced colours.
+
+	`glass-solid` is a first-class material, not a degradation: layout, radii,
+	shadows and type are identical and only the material changes, so the opaque
+	build cannot drift from the default one. Anyone screen-sharing a Forge
+	window should turn this on - see the security note in ADR-0017.
+*/
+
+@media (prefers-reduced-transparency: reduce) {
+	html body {
+		background-color: rgb(7, 11, 18);
+	}
+
+	body .monaco-workbench {
+		background-color: rgb(7, 11, 18);
+		background-image: none;
+	}
+
+	body .monaco-workbench.vs {
+		background-color: rgb(243, 245, 249);
+		background-image: none;
+	}
+
+	.monaco-workbench .part.titlebar,
+	.monaco-workbench .part.activitybar,
+	.monaco-workbench .part.sidebar,
+	.monaco-workbench .part.panel,
+	.monaco-workbench .part.auxiliarybar,
+	.monaco-workbench .part.statusbar,
+	.monaco-workbench .part.editor > .content,
+	.monaco-workbench .quick-input-widget,
+	.monaco-workbench .monaco-hover,
+	.monaco-workbench .suggest-widget,
+	.monaco-workbench .parameter-hints-widget,
+	.monaco-workbench .notifications-toasts .notification-toast,
+	.monaco-workbench .context-view .monaco-menu {
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+
+	.monaco-workbench .part.editor > .content {
+		background-color: rgb(17, 24, 35);
+	}
+
+	.monaco-workbench.vs .part.editor > .content {
+		background-color: rgb(255, 255, 255);
+	}
+}
+
+@media (forced-colors: active) {
+	body .monaco-workbench,
+	body .monaco-workbench.vs {
+		background-color: Canvas;
+		background-image: none;
+	}
+
+	.monaco-workbench .part.titlebar,
+	.monaco-workbench .part.activitybar,
+	.monaco-workbench .part.sidebar,
+	.monaco-workbench .part.panel,
+	.monaco-workbench .part.auxiliarybar,
+	.monaco-workbench .part.statusbar,
+	.monaco-workbench .part.editor > .content,
+	.monaco-workbench .quick-input-widget,
+	.monaco-workbench .monaco-hover,
+	.monaco-workbench .suggest-widget,
+	.monaco-workbench .parameter-hints-widget,
+	.monaco-workbench .notifications-toasts .notification-toast,
+	.monaco-workbench .context-view .monaco-menu {
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+		box-shadow: none;
+	}
+}
