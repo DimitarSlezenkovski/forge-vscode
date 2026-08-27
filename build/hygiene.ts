@@ -92,8 +92,13 @@ export function hygiene(some: NodeJS.ReadWriteStream | string[] | undefined, run
 	const productJson = es.through(function (file: VinylFile) {
 		const product = JSON.parse(file.contents!.toString('utf8'));
 
-		if (product.extensionsGallery) {
-			console.error(`product.json: Contains 'extensionsGallery'`);
+		// Jarvis Forge (ADR-0015): the fork ships the Open VSX gallery in
+		// product.json on purpose (Microsoft's marketplace ToS forbids
+		// non-Microsoft products). Upstream forbids any gallery here because
+		// theirs is injected at build time; Forge only forbids *other* galleries.
+		const gallery = product.extensionsGallery;
+		if (gallery && !(typeof gallery.serviceUrl === 'string' && gallery.serviceUrl.startsWith('https://open-vsx.org/'))) {
+			console.error(`product.json: Contains a non-Open-VSX 'extensionsGallery'`);
 			errorCount++;
 		}
 

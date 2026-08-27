@@ -1,0 +1,201 @@
+{
+	"name": "jarvis-forge",
+	"displayName": "Jarvis Forge",
+	"description": "Jarvis Forge — AI-native engineering inside VS Code. Projects, goals, workflows, approvals and evidence from the local Jarvis daemon.",
+	"version": "0.1.0",
+	"publisher": "jarvis",
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": [
+		"Other",
+		"SCM Providers"
+	],
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "jarvis-forge",
+					"title": "Forge",
+					"icon": "media/jarvis.svg"
+				}
+			]
+		},
+		"views": {
+			"jarvis-forge": [
+				{
+					"id": "jarvis.projects",
+					"name": "Projects & Goals"
+				},
+				{
+					"id": "jarvis.workflows",
+					"name": "Workflows"
+				},
+				{
+					"id": "jarvis.approvals",
+					"name": "Approvals"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "jarvis.engage",
+				"title": "Jarvis: Engage a Directive",
+				"icon": "$(rocket)"
+			},
+			{
+				"command": "jarvis.registerWorkspace",
+				"title": "Jarvis: Register This Workspace as a Project",
+				"icon": "$(add)"
+			},
+			{
+				"command": "jarvis.runGoal",
+				"title": "Jarvis: Run Goal",
+				"icon": "$(play)"
+			},
+			{
+				"command": "jarvis.cancelWorkflow",
+				"title": "Jarvis: Cancel Workflow",
+				"icon": "$(stop-circle)"
+			},
+			{
+				"command": "jarvis.approve",
+				"title": "Jarvis: Approve",
+				"icon": "$(check)"
+			},
+			{
+				"command": "jarvis.deny",
+				"title": "Jarvis: Deny",
+				"icon": "$(x)"
+			},
+			{
+				"command": "jarvis.showDiff",
+				"title": "Jarvis: Show Workflow Diff",
+				"icon": "$(git-compare)"
+			},
+			{
+				"command": "jarvis.showEvidence",
+				"title": "Jarvis: Show Evidence"
+			},
+			{
+				"command": "jarvis.refresh",
+				"title": "Jarvis: Refresh",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "jarvis.openCommandBridge",
+				"title": "Jarvis: Open Command Bridge"
+			},
+			{
+				"command": "jarvis.startDaemon",
+				"title": "Jarvis: Start Daemon",
+				"icon": "$(debug-start)"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "jarvis.engage",
+					"when": "view == jarvis.workflows",
+					"group": "navigation@1"
+				},
+				{
+					"command": "jarvis.refresh",
+					"when": "view == jarvis.projects || view == jarvis.workflows || view == jarvis.approvals",
+					"group": "navigation@2"
+				},
+				{
+					"command": "jarvis.registerWorkspace",
+					"when": "view == jarvis.projects",
+					"group": "navigation@1"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "jarvis.runGoal",
+					"when": "view == jarvis.projects && viewItem == jarvisGoal",
+					"group": "inline@1"
+				},
+				{
+					"command": "jarvis.showDiff",
+					"when": "view == jarvis.workflows && viewItem =~ /jarvisWorkflow/",
+					"group": "inline@1"
+				},
+				{
+					"command": "jarvis.cancelWorkflow",
+					"when": "view == jarvis.workflows && viewItem == jarvisWorkflowActive",
+					"group": "inline@2"
+				},
+				{
+					"command": "jarvis.showEvidence",
+					"when": "view == jarvis.workflows && viewItem =~ /jarvisWorkflow/",
+					"group": "1_jarvis@1"
+				},
+				{
+					"command": "jarvis.approve",
+					"when": "view == jarvis.approvals && viewItem == jarvisApproval",
+					"group": "inline@1"
+				},
+				{
+					"command": "jarvis.showDiff",
+					"when": "view == jarvis.approvals && viewItem == jarvisApproval",
+					"group": "inline@2"
+				},
+				{
+					"command": "jarvis.deny",
+					"when": "view == jarvis.approvals && viewItem == jarvisApproval",
+					"group": "inline@3"
+				}
+			]
+		},
+		"configuration": {
+			"title": "Jarvis Forge",
+			"properties": {
+				"jarvis.daemonUrl": {
+					"type": "string",
+					"default": "http://localhost:5178",
+					"description": "Base URL of the local Jarvis daemon (jarvisd)."
+				},
+				"jarvis.commandBridgeUrl": {
+					"type": "string",
+					"default": "http://localhost:1420",
+					"description": "URL of the Nexus Command Bridge dev server (for the Open Command Bridge command)."
+				},
+				"jarvis.daemonLaunch": {
+					"type": [
+						"object",
+						"null"
+					],
+					"default": null,
+					"markdownDescription": "How **Jarvis: Start Daemon** launches jarvisd. Leave empty to auto-detect: a workspace folder containing `src/Jarvis.Host/Jarvis.Host.csproj` runs `dotnet run --project <that>`, otherwise `jarvisd` is tried on PATH. Arguments are passed as an argv vector to a visible integrated terminal — never through a shell.",
+					"properties": {
+						"command": {
+							"type": "string",
+							"description": "Executable: a bare name resolved on PATH (e.g. dotnet, jarvisd) or an absolute path. No spaces or shell metacharacters."
+						},
+						"args": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"default": [],
+							"description": "Argument vector, one element per argument."
+						},
+						"cwd": {
+							"type": "string",
+							"description": "Working directory for the daemon terminal."
+						}
+					},
+					"required": [
+						"command"
+					],
+					"additionalProperties": false
+				}
+			}
+		}
+	}
+}

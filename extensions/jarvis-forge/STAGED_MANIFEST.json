@@ -1,0 +1,23 @@
+{
+	"$comment": "Provenance for a build artefact committed from another repo. Generated — do not hand-edit; re-run apps/forge-vscode/scripts/apply-overlay.ps1.",
+	"generatedBy": "apps/forge-vscode/scripts/apply-overlay.ps1",
+	"extensionId": "jarvis.jarvis-forge",
+	"extensionVersion": "0.1.0",
+	"source": {
+		"repo": "https://github.com/DimitarSlezenkovski/Jarvis",
+		"path": "apps/forge-ide",
+		"commit": "d47a1575275e0a72d2b8a83b08ce4c18a28105eb",
+		"dirty": false,
+		"built": true
+	},
+	"files": {
+		"dist/extension.js": {
+			"sha256": "0c834c3ff74f8fe14a75d555b0357677ca91259f5b791461ea660de77ab38c2f",
+			"bytes": 41902
+		},
+		"package.json": {
+			"sha256": "2ca47f7257ca859a4cd2ee32f427cda828d55ca11c7dd24d3bcc046fab4a1f94",
+			"bytes": 5065
+		}
+	}
+}
