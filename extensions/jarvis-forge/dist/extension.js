@@ -214,11 +214,17 @@ var DaemonClient = class {
    * The Model Council's route for a directive, without running anything. This
    * is what the Intent Bar previews live as you type: `explain` is a pure
    * query — it records a decision id but engages no agent and spends nothing.
+   *
+   * `fast` skips the local-model second opinion and answers from the heuristic
+   * classifier alone — ~6-8 ms of daemon work against 0.14-0.22 s warm and up
+   * to ~1.5 s cold. It is the same policy over a cheaper classification, so it
+   * can disagree with the full answer; anything rendered from it must say so.
    */
   explainRoute(directive, options = {}, signal) {
     const params = new URLSearchParams({ directive, role: options.role ?? "implementer" });
     if (options.projectId) params.set("projectId", options.projectId);
     if (options.localOnly) params.set("localOnly", "true");
+    if (options.fast) params.set("fast", "true");
     return this.getJson(`/api/v1/routing/explain?${params.toString()}`, signal);
   }
   /** Long-poll event feed. Returns events after the cursor, waiting up to waitSeconds. */
@@ -1456,6 +1462,99 @@ function reviewerFromEvidence(manifest) {
   return null;
 }
 
+// src/lens/routeSignals.ts
+var LOCAL_MODEL_SOURCE = "local-model";
+var RAISED_RISK = /^local model \(([^)]*)\) raised risk (\S+) → (\S+)/i;
+var RAISED_CLASS = /^local model \(([^)]*)\) raised (\S+) → (\S+)/i;
+var AGREED = /^local model \(([^)]*)\) agreed on (\S+)/i;
+var DEFERRED_RISK = /^local model \(([^)]*)\) suggested risk (\S+); ignored/i;
+var DEFERRED_CLASS = /^local model \(([^)]*)\) suggested (\S+); ignored/i;
+function titleCase(value) {
+  return value.length === 0 ? value : value[0].toUpperCase() + value.slice(1);
+}
+function localModelVerdict(facts) {
+  const classification = facts?.classification;
+  if (!classification) return null;
+  const signals = classification.signals ?? [];
+  const lines = signals.filter((line) => typeof line === "string" && /^local model \(/i.test(line));
+  const find = (pattern) => {
+    for (const line of lines) {
+      const match = pattern.exec(line);
+      if (match !== null) return { line, match };
+    }
+    return null;
+  };
+  const raisedRisk = find(RAISED_RISK);
+  if (raisedRisk !== null) {
+    return {
+      kind: "raised",
+      text: `Local model raised the risk to ${titleCase(raisedRisk.match[3])}`,
+      tone: "warn",
+      detail: raisedRisk.line
+    };
+  }
+  const raisedClass = find(RAISED_CLASS);
+  if (raisedClass !== null) {
+    return {
+      kind: "raised",
+      text: `Local model raised this to ${titleCase(raisedClass.match[3])}`,
+      tone: "warn",
+      detail: raisedClass.line
+    };
+  }
+  const agreed = find(AGREED);
+  if (agreed !== null) {
+    return {
+      kind: "agreed",
+      text: `Local model agreed on ${titleCase(agreed.match[2])}`,
+      tone: "ok",
+      detail: agreed.line
+    };
+  }
+  const deferredRisk = find(DEFERRED_RISK);
+  if (deferredRisk !== null) {
+    return {
+      kind: "deferred",
+      text: `Local model read the risk lower (${titleCase(deferredRisk.match[2])}) \u2014 risk never ratchets down`,
+      tone: "neutral",
+      detail: deferredRisk.line
+    };
+  }
+  const deferredClass = find(DEFERRED_CLASS);
+  if (deferredClass !== null) {
+    return {
+      kind: "deferred",
+      text: `Local model read this as ${titleCase(deferredClass.match[2])} \u2014 the stronger call stands`,
+      tone: "neutral",
+      detail: deferredClass.line
+    };
+  }
+  if ((classification.source ?? "").toLowerCase() === LOCAL_MODEL_SOURCE) {
+    return {
+      kind: "agreed",
+      text: "Local model weighed in",
+      tone: "neutral",
+      detail: `classification.source = ${classification.source}`
+    };
+  }
+  return null;
+}
+function routeFingerprint(facts) {
+  if (!facts) return "\u2205";
+  const c = facts.classification ?? {};
+  const s = facts.selected ?? {};
+  const cost = facts.estimatedCostUsd ?? s.estimatedCostUsd ?? null;
+  return [
+    c.class ?? "",
+    c.risk ?? "",
+    s.adapterId ?? "",
+    s.model ?? "",
+    s.tier ?? "",
+    cost === null ? "" : cost.toFixed(4),
+    facts.estimateBasis ?? ""
+  ].join("|");
+}
+
 // src/lens/routing.ts
 var TITLE_CASE = {
   trivial: "Trivial change",
@@ -1479,7 +1578,7 @@ function formatCost(value) {
   if (value < 0.01) return "<$0.01";
   return `~$${value.toFixed(2)}`;
 }
-function titleCase(value) {
+function titleCase2(value) {
   if (!value) return value;
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -1503,7 +1602,7 @@ function toRoutePreview(decision) {
   const risk = classification.risk ?? "low";
   const agentId = selected.adapterId ?? "unrouted";
   const model = selected.model ?? selected.modelFamily ?? "adapter default";
-  const tier = titleCase(selected.tier ?? "unknown");
+  const tier = titleCase2(selected.tier ?? "unknown");
   const mode = (selected.mode ?? "cloud").toLowerCase();
   const localOnly = mode === "local" || (classification.data ?? "").toLowerCase() === "localonly";
   const cost = decision.estimatedCostUsd ?? selected.estimatedCostUsd ?? null;
@@ -1514,11 +1613,11 @@ function toRoutePreview(decision) {
     {
       id: "class",
       label: "shape",
-      value: TITLE_CASE[taskClass] ?? titleCase(taskClass),
+      value: TITLE_CASE[taskClass] ?? titleCase2(taskClass),
       tone: "accent"
     },
-    { id: "risk", label: "risk", value: titleCase(risk), tone: riskTone(risk) },
-    { id: "agent", label: titleCase(decision.role ?? "implementer"), value: agentId, tone: "neutral" },
+    { id: "risk", label: "risk", value: titleCase2(risk), tone: riskTone(risk) },
+    { id: "agent", label: titleCase2(decision.role ?? "implementer"), value: agentId, tone: "neutral" },
     { id: "model", label: tier, value: model, tone: "neutral" },
     { id: "cost", label: "cost", value: costLabel, tone: cost !== null && cost > 1 ? "warn" : "neutral" },
     { id: "eta", label: "time", value: etaLabel, tone: "neutral" },
@@ -1529,7 +1628,7 @@ function toRoutePreview(decision) {
       tone: localOnly ? "ok" : "neutral"
     }
   ];
-  const headline = `${TITLE_CASE[taskClass] ?? titleCase(taskClass)} \xB7 ${agentId} ${(decision.role ?? "implements").toLowerCase() === "reviewer" ? "reviews" : "implements"} \xB7 ${costLabel} \xB7 ${etaLabel}`;
+  const headline = `${TITLE_CASE[taskClass] ?? titleCase2(taskClass)} \xB7 ${agentId} ${(decision.role ?? "implements").toLowerCase() === "reviewer" ? "reviews" : "implements"} \xB7 ${costLabel} \xB7 ${etaLabel}`;
   return {
     headline,
     chips,
@@ -1542,7 +1641,10 @@ function toRoutePreview(decision) {
     costLabel,
     etaLabel,
     rationale: decision.rationale ?? [],
-    signals: classification.signals ?? []
+    signals: classification.signals ?? [],
+    source: classification.source ?? "heuristic",
+    localModel: localModelVerdict(decision),
+    fingerprint: routeFingerprint(decision)
   };
 }
 
@@ -1574,7 +1676,8 @@ var LensViewProvider = class {
   }
   view;
   disposables = [];
-  routeAbort;
+  routeFastAbort;
+  routeFullAbort;
   expanded = null;
   sheetWorkflowId = null;
   /** workflowId -> parsed patch, so the ghost diffs and the sheet share one fetch. */
@@ -1665,7 +1768,7 @@ var LensViewProvider = class {
         this.pushSnapshot();
         return;
       case "route":
-        return this.previewRoute(message.token, message.directive);
+        return this.previewRoute(message.token, message.tier, message.directive);
       case "engage":
         return this.engage(message.directive, message.planOnly);
       case "expand":
@@ -1717,31 +1820,37 @@ var LensViewProvider = class {
   }
   // --- intent --------------------------------------------------------------
   /**
-   * Live route preview. Only the newest keystroke's request may answer: the
-   * previous one is aborted, and the token is echoed so an out-of-order reply
-   * is dropped by the webview rather than flickering an older route.
+   * Live route preview, in two tiers. The webview decides *when* each tier is
+   * worth asking for (`previewScheduler`); this side just answers, echoing the
+   * token and tier so an out-of-order or superseded reply is dropped rather
+   * than flickering an older route onto the strip.
+   *
+   * The two tiers get their own abort slots: a `fast` call must not cancel the
+   * `full` call that is deliberately running behind it.
    */
-  async previewRoute(token, directive) {
-    this.routeAbort?.abort();
+  async previewRoute(token, tier, directive) {
+    const slot = tier === "fast" ? "routeFastAbort" : "routeFullAbort";
+    this[slot]?.abort();
     if (!directive.trim()) {
-      this.post({ type: "route", token, preview: null, error: null });
+      this.post({ type: "route", token, tier, preview: null, error: null });
       return;
     }
     const controller = new AbortController();
-    this.routeAbort = controller;
+    this[slot] = controller;
     try {
       const projectId = this.store.workspaceProject?.id;
       const decision = await this.client.explainRoute(
         directive.trim(),
-        projectId ? { projectId } : {},
+        { ...projectId ? { projectId } : {}, fast: tier === "fast" },
         controller.signal
       );
-      this.post({ type: "route", token, preview: toRoutePreview(decision), error: null });
+      this.post({ type: "route", token, tier, preview: toRoutePreview(decision), error: null });
     } catch (err) {
       if (controller.signal.aborted) return;
       this.post({
         type: "route",
         token,
+        tier,
         preview: null,
         error: err instanceof Error ? err.message : String(err)
       });
@@ -1952,7 +2061,8 @@ var LensViewProvider = class {
 </html>`;
   }
   dispose() {
-    this.routeAbort?.abort();
+    this.routeFastAbort?.abort();
+    this.routeFullAbort?.abort();
     for (const d of this.disposables) d.dispose();
   }
 };

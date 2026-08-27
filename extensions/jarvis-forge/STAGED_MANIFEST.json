@@ -6,14 +6,14 @@
 	"source": {
 		"repo": "https://github.com/DimitarSlezenkovski/Jarvis",
 		"path": "apps/forge-ide",
-		"commit": "ed616f849f98e74430dc4e65817a0a555e226067",
-		"dirty": true,
+		"commit": "4d37ea3555601bd5fd107182cce6b622197756d3",
+		"dirty": false,
 		"built": true
 	},
 	"files": {
 		"dist/extension.js": {
-			"sha256": "2cd484e7e61840c631382466853cabd562bb9d13d05604015329a73055d9ca65",
-			"bytes": 87042
+			"sha256": "ba388222f26cebc2f0d0d073520c4697e5172f47ed10f1f281a557b2d4abd4ba",
+			"bytes": 90911
 		},
 		"package.json": {
 			"sha256": "21c6109830d68bad82098f777878092f5ab7be4c7b0a7eb30edf9e37f643d606",

@@ -6,8 +6,8 @@
 	"source": {
 		"repo": "https://github.com/DimitarSlezenkovski/Jarvis",
 		"path": "apps/forge-vscode/extensions/jarvis-glass-theme",
-		"commit": "ed616f849f98e74430dc4e65817a0a555e226067",
-		"dirty": true,
+		"commit": "4d37ea3555601bd5fd107182cce6b622197756d3",
+		"dirty": false,
 		"built": true
 	},
 	"files": {

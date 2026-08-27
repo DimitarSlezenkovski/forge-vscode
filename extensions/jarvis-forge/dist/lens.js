@@ -1,5 +1,257 @@
 "use strict";
 (() => {
+  // src/lens/previewScheduler.ts
+  var FAST_DEBOUNCE_MS = 120;
+  var SETTLE_MS = 900;
+  var PREVIEW_MIN_CHARS = 4;
+  var PREVIEW_CACHE_MAX = 40;
+  function previewCacheKey(tier, scope, directive) {
+    return `${tier}\u241F${scope}\u241F${directive}`;
+  }
+  function idle(changeToken) {
+    return {
+      directive: "",
+      scope: "",
+      value: null,
+      tier: null,
+      loading: false,
+      loadingTier: null,
+      error: null,
+      changed: false,
+      changeToken
+    };
+  }
+  var PreviewScheduler = class {
+    options;
+    fastCache = /* @__PURE__ */ new Map();
+    fullCache = /* @__PURE__ */ new Map();
+    /** Bumped by every input change and by reset; stale replies are dropped against it. */
+    generation = 0;
+    /** Generation whose full answer has already landed. */
+    fullLandedGeneration = -1;
+    fastTimer;
+    settleTimer;
+    fastAbort;
+    fullAbort;
+    fullInFlight = false;
+    changeToken = 0;
+    current;
+    disposed = false;
+    constructor(options) {
+      this.options = {
+        fastDebounceMs: FAST_DEBOUNCE_MS,
+        settleMs: SETTLE_MS,
+        minChars: PREVIEW_MIN_CHARS,
+        cacheMax: PREVIEW_CACHE_MAX,
+        ...options
+      };
+      this.current = idle(0);
+    }
+    get state() {
+      return this.current;
+    }
+    /** Test/introspection hook: how many answers of each tier are held. */
+    cacheSize(tier) {
+      return (tier === "fast" ? this.fastCache : this.fullCache).size;
+    }
+    /**
+     * A keystroke. Idempotent for an unchanged directive+scope, so cursor moves
+     * and re-renders do not re-arm the timers or re-ask the daemon.
+     */
+    input(directive, scope = "") {
+      if (this.disposed) return;
+      const trimmed = directive.trim();
+      if (trimmed === this.current.directive && scope === this.current.scope) return;
+      if (trimmed.length < this.options.minChars && this.current.directive === "") {
+        return;
+      }
+      this.cancelPending();
+      const generation = ++this.generation;
+      if (trimmed.length < this.options.minChars) {
+        this.emit(idle(this.changeToken));
+        return;
+      }
+      const full = this.fullCache.get(previewCacheKey("full", scope, trimmed));
+      if (full !== void 0) {
+        this.fullLandedGeneration = generation;
+        this.emit({
+          directive: trimmed,
+          scope,
+          value: full,
+          tier: "full",
+          loading: false,
+          loadingTier: null,
+          error: null,
+          changed: false,
+          changeToken: this.changeToken
+        });
+        return;
+      }
+      const fast = this.fastCache.get(previewCacheKey("fast", scope, trimmed));
+      if (fast !== void 0) {
+        this.emit({
+          directive: trimmed,
+          scope,
+          value: fast,
+          tier: "fast",
+          loading: false,
+          loadingTier: null,
+          error: null,
+          changed: false,
+          changeToken: this.changeToken
+        });
+      } else {
+        this.emit({
+          directive: trimmed,
+          scope,
+          value: this.current.value,
+          tier: this.current.tier,
+          loading: true,
+          loadingTier: "fast",
+          error: null,
+          changed: false,
+          changeToken: this.changeToken
+        });
+        this.fastTimer = setTimeout(() => {
+          this.fastTimer = void 0;
+          void this.run("fast", generation, trimmed, scope);
+        }, this.options.fastDebounceMs);
+      }
+      this.settleTimer = setTimeout(() => {
+        this.settleTimer = void 0;
+        void this.run("full", generation, trimmed, scope);
+      }, this.options.settleMs);
+    }
+    /**
+     * The user stopped caring about waiting — focus left the field. Fires the full
+     * call now instead of at the end of the settle window. A fast call already in
+     * flight is left alone: it may still paint first, and the ordering rules stop
+     * it overwriting the full answer.
+     */
+    settle() {
+      if (this.disposed) return;
+      if (this.settleTimer !== void 0) {
+        clearTimeout(this.settleTimer);
+        this.settleTimer = void 0;
+      }
+      const { directive, scope } = this.current;
+      if (directive.length < this.options.minChars) return;
+      if (this.fullInFlight || this.fullLandedGeneration === this.generation) return;
+      void this.run("full", this.generation, directive, scope);
+    }
+    /** Directive engaged or field cleared: drop everything on screen and in flight. */
+    reset() {
+      if (this.disposed) return;
+      this.cancelPending();
+      this.generation++;
+      this.emit(idle(this.changeToken));
+    }
+    dispose() {
+      this.cancelPending();
+      this.disposed = true;
+    }
+    // --- internals -----------------------------------------------------------
+    cancelPending() {
+      if (this.fastTimer !== void 0) clearTimeout(this.fastTimer);
+      if (this.settleTimer !== void 0) clearTimeout(this.settleTimer);
+      this.fastTimer = void 0;
+      this.settleTimer = void 0;
+      this.fastAbort?.abort();
+      this.fullAbort?.abort();
+      this.fastAbort = void 0;
+      this.fullAbort = void 0;
+      this.fullInFlight = false;
+    }
+    async run(tier, generation, directive, scope) {
+      if (this.disposed || generation !== this.generation) return;
+      if (tier === "fast" && this.fullLandedGeneration === generation) return;
+      const controller = new AbortController();
+      if (tier === "fast") {
+        this.fastAbort = controller;
+      } else {
+        this.fullAbort = controller;
+        this.fullInFlight = true;
+      }
+      if (tier === "full" && this.current.value === null && generation === this.generation) {
+        this.emit({ ...this.current, loading: true, loadingTier: "full" });
+      }
+      let value = null;
+      let failure = null;
+      try {
+        value = await this.options.fetch(tier, directive, scope, controller.signal);
+      } catch (cause) {
+        failure = cause instanceof Error ? cause.message : String(cause);
+      }
+      if (tier === "full") this.fullInFlight = false;
+      if (this.disposed || controller.signal.aborted || generation !== this.generation) return;
+      if (tier === "fast" && this.fullLandedGeneration === generation) return;
+      if (value === null) {
+        this.fail(tier, failure ?? "The council did not answer.", generation);
+        return;
+      }
+      this.remember(tier, scope, directive, value);
+      if (tier === "full") this.fullLandedGeneration = generation;
+      const previous = this.current;
+      const differs = tier === "full" && previous.tier === "fast" && previous.value !== null && this.fingerprint(previous.value) !== this.fingerprint(value);
+      if (differs) this.changeToken++;
+      this.emit({
+        directive,
+        scope,
+        value,
+        tier,
+        loading: tier === "fast" && this.fullPendingFor(generation),
+        loadingTier: tier === "fast" && this.fullPendingFor(generation) ? "full" : null,
+        error: null,
+        changed: differs,
+        changeToken: this.changeToken
+      });
+    }
+    fullPendingFor(generation) {
+      return generation === this.generation && this.fullLandedGeneration !== generation && (this.fullInFlight || this.settleTimer !== void 0);
+    }
+    /**
+     * A failed call must not take a usable preview off the screen. The error only
+     * surfaces when there is nothing better to show for this directive.
+     */
+    fail(tier, message, generation) {
+      if (this.current.value !== null) {
+        const waiting = tier === "fast" && this.fullPendingFor(generation);
+        this.emit({
+          ...this.current,
+          loading: waiting,
+          loadingTier: waiting ? "full" : null,
+          changed: false
+        });
+        return;
+      }
+      this.emit({
+        ...this.current,
+        value: null,
+        tier: null,
+        loading: false,
+        loadingTier: null,
+        error: message,
+        changed: false
+      });
+    }
+    fingerprint(value) {
+      const fn = this.options.fingerprint;
+      return fn === void 0 ? JSON.stringify(value) : fn(value);
+    }
+    remember(tier, scope, directive, value) {
+      const cache = tier === "fast" ? this.fastCache : this.fullCache;
+      if (cache.size >= this.options.cacheMax) {
+        const oldest = cache.keys().next();
+        if (oldest.done !== true) cache.delete(oldest.value);
+      }
+      cache.set(previewCacheKey(tier, scope, directive), value);
+    }
+    emit(next) {
+      this.current = next;
+      this.options.onChange(next);
+    }
+  };
+
   // src/lens/webview/main.ts
   var vscode = acquireVsCodeApi();
   var post = (message) => vscode.postMessage(message);
@@ -57,10 +309,17 @@
   }
   var state = {
     snapshot: null,
-    preview: null,
-    previewError: null,
-    routing: false,
-    token: 0,
+    preview: {
+      directive: "",
+      scope: "",
+      value: null,
+      tier: null,
+      loading: false,
+      loadingTier: null,
+      error: null,
+      changed: false,
+      changeToken: 0
+    },
     expanded: null,
     detail: null,
     sheet: null,
@@ -90,25 +349,29 @@
   var sheetHost = el("div", "sheet-host");
   var toastHost = el("div", "toasts");
   root.append(statusRow, intentSection, river, sheetHost, toastHost);
-  var routeTimer;
-  function requestRoute() {
-    if (routeTimer) clearTimeout(routeTimer);
-    const directive = intentInput.value;
-    if (!directive.trim()) {
-      state.preview = null;
-      state.previewError = null;
-      state.routing = false;
+  var routeToken = 0;
+  var routeWaiting = /* @__PURE__ */ new Map();
+  var routes = new PreviewScheduler({
+    fetch: (tier, directive, _scope, signal) => new Promise((resolve, reject) => {
+      const token = ++routeToken;
+      routeWaiting.set(token, { resolve, reject });
+      signal.addEventListener("abort", () => {
+        routeWaiting.delete(token);
+        reject(new Error("superseded"));
+      });
+      post({ type: "route", token, tier, directive });
+    }),
+    onChange: (next) => {
+      state.preview = next;
       renderRoute();
-      return;
-    }
-    state.routing = true;
-    renderRoute();
-    routeTimer = setTimeout(() => {
-      state.token += 1;
-      post({ type: "route", token: state.token, directive });
-    }, 220);
+    },
+    fingerprint: (preview) => preview.fingerprint
+  });
+  function requestRoute() {
+    routes.input(intentInput.value, state.snapshot?.projectId ?? "");
   }
   intentInput.addEventListener("input", requestRoute);
+  intentInput.addEventListener("blur", () => routes.settle());
   intentInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -116,27 +379,34 @@
       if (!directive) return;
       post({ type: "engage", directive, planOnly: event.shiftKey });
       intentInput.value = "";
-      state.preview = null;
-      renderRoute();
+      routes.reset();
     } else if (event.key === "Escape") {
       intentInput.value = "";
-      requestRoute();
+      routes.reset();
     }
   });
   intentCapsule.addEventListener("click", () => intentInput.focus());
+  function replay(node, className) {
+    node.classList.remove(className);
+    void node.offsetWidth;
+    node.classList.add(className);
+  }
   function renderRoute() {
+    const { value: preview, tier, loading, error, changed } = state.preview;
     routeLine.replaceChildren();
-    routeLine.classList.toggle("is-visible", state.routing || !!state.preview || !!state.previewError);
-    if (state.previewError) {
-      routeLine.append(el("p", "route-error", state.previewError));
+    routeLine.classList.toggle("is-visible", loading || preview !== null || error !== null);
+    if (preview === null) {
+      if (error !== null) routeLine.append(el("p", "route-error", error));
+      else if (loading) routeLine.append(el("p", "route-thinking", "reading the route\u2026"));
       return;
     }
-    if (!state.preview) {
-      if (state.routing) routeLine.append(el("p", "route-thinking", "reading the route\u2026"));
-      return;
+    const headline = el("p", "route-headline", preview.headline);
+    if (tier === "fast") {
+      const badge = el("span", "route-estimate", "quick estimate");
+      badge.title = "Read from your words alone. The full route \u2014 including the local model's second opinion \u2014 lands when you pause.";
+      headline.append(badge);
     }
-    const preview = state.preview;
-    routeLine.append(el("p", "route-headline", preview.headline));
+    routeLine.append(headline);
     const chips = el("div", "chips");
     for (const chip of preview.chips) {
       chips.append(
@@ -149,6 +419,13 @@
       );
     }
     routeLine.append(chips);
+    if (preview.localModel !== null) {
+      const second = el("p", `route-second route-second-${preview.localModel.tone}`, preview.localModel.text);
+      second.title = preview.localModel.detail;
+      routeLine.append(second);
+    }
+    if (changed) replay(routeLine, "route-changed");
+    else routeLine.classList.remove("route-changed");
   }
   function renderSuggestions(snapshot) {
     suggestionRow.replaceChildren();
@@ -524,15 +801,17 @@
         renderStatus(message.snapshot);
         renderSuggestions(message.snapshot);
         renderRiver();
+        requestRoute();
         break;
       }
-      case "route":
-        if (message.token !== state.token) return;
-        state.routing = false;
-        state.preview = message.preview;
-        state.previewError = message.error;
-        renderRoute();
+      case "route": {
+        const waiter = routeWaiting.get(message.token);
+        if (waiter === void 0) return;
+        routeWaiting.delete(message.token);
+        if (message.error !== null) waiter.reject(new Error(message.error));
+        else waiter.resolve(message.preview);
         break;
+      }
       case "detail":
         state.detail = message.detail;
         renderRiver();
